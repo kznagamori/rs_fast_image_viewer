@@ -1,17 +1,15 @@
 name: Release
 
 on:
-  release:
-    types: [published, created]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
         description: 'Tag to release'
         required: true
         type: string
-  push:
-    tags:
-      - 'v*'
 
 env:
   CARGO_TERM_COLOR: always
@@ -72,57 +70,6 @@ jobs:
         $size = (Get-Item "target\x86_64-pc-windows-msvc\release\rs_fast_image_viewer.exe").Length
         Write-Host "Build successful. Executable size: $size bytes"
 
-    - name: Create sample config file
-      run: |
-        @"
-        # rs_fast_image_viewer 設定ファイル
-        # 最小ウィンドウサイズ (幅, 高さ)
-        min_window_size = [800, 600]
-        
-        # ソートアルゴリズム
-        # "FileName"    - ファイル名でソート
-        # "CreatedTime" - 作成日時でソート  
-        # "ModifiedTime"- 更新日時でソート
-        sort_algorithm = "FileName"
-        "@ | Out-File -FilePath "rs_fast_image_viewer.toml" -Encoding UTF8
-
-    - name: Create README for release
-      run: |
-        @"
-        # rs_fast_image_viewer ${{ needs.prepare.outputs.version }}
-        
-        WebP対応の高速画像ビューアー (Windows x64)
-        
-        ## 使用方法
-        
-        \`\`\`
-        rs_fast_image_viewer.exe [画像ファイルまたはディレクトリ]
-        \`\`\`
-        
-        ## キーボードショートカット
-        
-        - → または X: 次の画像
-        - ← または Z: 前の画像  
-        - Enter または Escape: 終了
-        
-        ## 設定
-        
-        同じディレクトリの rs_fast_image_viewer.toml で設定を変更できます。
-        
-        ## システム要件
-        
-        - Windows 10/11 (64bit)
-        - DirectX 12, Vulkan, またはOpenGL ES対応GPU
-        
-        ## 対応フォーマット
-        
-        - JPEG (.jpg, .jpeg)
-        - PNG (.png)
-        - WebP (.webp)
-        
-        詳細な情報: https://github.com/${{ github.repository }}
-        "@ | Out-File -FilePath "README-release.md" -Encoding UTF8
-
     - name: Prepare release directory
       run: |
         $releaseDir = "rs_fast_image_viewer-windows-x64"
@@ -131,11 +78,8 @@ jobs:
         # Copy executable
         Copy-Item "target\x86_64-pc-windows-msvc\release\rs_fast_image_viewer.exe" "$releaseDir\"
         
-        # Copy config file
-        Copy-Item "rs_fast_image_viewer.toml" "$releaseDir\"
-        
-        # Copy README
-        Copy-Item "README-release.md" "$releaseDir\README.md"
+        # Copy README from repository
+        Copy-Item "README.md" "$releaseDir\"
         
         # Copy LICENSE if exists
         if (Test-Path "LICENSE") {
@@ -177,7 +121,6 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [prepare, build]
-    if: github.event_name == 'release'
     permissions:
       contents: write
     
@@ -197,14 +140,15 @@ jobs:
     - name: Display structure
       run: find artifacts -type f -name "*" | sort
 
-    - name: Upload Release Assets
+    - name: Create Release and Upload Assets
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ needs.prepare.outputs.tag }}
+        name: "rs_fast_image_viewer ${{ needs.prepare.outputs.version }}"
         files: |
           artifacts/rs_fast_image_viewer-windows-x64.zip
           artifacts/rs_fast_image_viewer-windows-x64.zip.sha256
           artifacts/rs_fast_image_viewer.exe
-        name: "rs_fast_image_viewer ${{ needs.prepare.outputs.version }}"
         body: |
           ## rs_fast_image_viewer ${{ needs.prepare.outputs.version }}
           
@@ -212,46 +156,18 @@ jobs:
           
           ### ダウンロード
           
-          **推奨:** `rs_fast_image_viewer-windows-x64.zip` - 設定ファイル付きの完全パッケージ
+          **推奨:** `rs_fast_image_viewer-windows-x64.zip` - 完全パッケージ（実行ファイル + README + VERSION情報）
           
           または、実行ファイルのみ: `rs_fast_image_viewer.exe`
           
-          ### システム要件
+          ### 詳細な情報
           
-          - Windows 10/11 (64bit)
-          - DirectX 12, Vulkan, またはOpenGL ES対応GPU
-          
-          ### インストール
-          
-          1. ZIPファイルをダウンロード
-          2. 任意のフォルダに展開
-          3. `rs_fast_image_viewer.exe` を実行
-          
-          ### 使用方法
-          
-          ```bash
-          rs_fast_image_viewer.exe [画像ファイルまたはディレクトリ]
-          ```
-          
-          ### 対応フォーマット
-          
-          - JPEG (.jpg, .jpeg)
-          - PNG (.png)  
-          - WebP (.webp)
-          
-          ### キーボードショートカット
-          
-          - `→` または `X`: 次の画像
-          - `←` または `Z`: 前の画像
-          - `Enter` または `Escape`: 終了
-          
-          ### 変更点
-          
-          リリースノートは [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) をご覧ください。
+          使用方法、システム要件、設定方法などの詳細は [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) をご覧ください。
           
           ---
           
           **チェックサム:** SHA256ハッシュファイル（`.sha256`）でファイルの整合性を確認できます。
         draft: false
         prerelease: ${{ contains(needs.prepare.outputs.tag, 'alpha') || contains(needs.prepare.outputs.tag, 'beta') || contains(needs.prepare.outputs.tag, 'rc') }}
+        generate_release_notes: true
         token: ${{ secrets.GITHUB_TOKEN }}
