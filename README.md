@@ -1,0 +1,2 @@
+# rs_fast_image_viewer
+WebP対応の高速画像ビューアーアプリケーション
