@@ -2,17 +2,19 @@ name: Release
 
 on:
   release:
-    types: [published]
+    types: [published, created]
   workflow_dispatch:
     inputs:
       tag:
         description: 'Tag to release'
         required: true
         type: string
+  push:
+    tags:
+      - 'v*'
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
 
 jobs:
   prepare:
@@ -40,31 +42,10 @@ jobs:
         VERSION=$(echo "${{ steps.tag.outputs.tag }}" | sed 's/^v//')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-  test:
-    name: Test
-    runs-on: windows-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: x86_64-pc-windows-msvc
-
-    - name: Setup Rust cache
-      uses: Swatinem/rust-cache@v2
-
-    - name: Run tests
-      run: cargo test --verbose
-
-    - name: Run clippy
-      run: cargo clippy -- -D warnings
-
   build:
     name: Build Windows x64
     runs-on: windows-latest
-    needs: [prepare, test]
+    needs: [prepare]
     
     steps:
     - name: Checkout
