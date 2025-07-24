@@ -9,6 +9,8 @@ use log::{info, warn};
 pub enum SortAlgorithm {
     /// ファイル名でソート
     FileName,
+    /// ファイル名で自然順ソート（数字をゼロサプレスして比較）
+    FileNameNatural,
     /// 作成日時でソート
     CreatedTime,
     /// 更新日時でソート

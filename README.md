@@ -4,7 +4,7 @@ WebP対応の高速画像ビューアーアプリケーション
 
 ## 概要
 
-Rust 製の高速画像ビューアーです。JPEG、PNG、WEBP に対応し、ディレクトリ指定時にはソートされた画像リストを順次閲覧できます。
+Windowsのアプリケーション「フォト」がWebPに非対応のため、代替として作成された高速画像ビューアーです。
 
 ## 対応画像フォーマット
 
@@ -69,13 +69,14 @@ rs_fast_image_viewer path/to/image/directory
 # 最小ウィンドウサイズ (幅, 高さ)
 min_window_size = [800, 600]
 
-# ソートアルゴリズム ("FileName", "CreatedTime", "ModifiedTime")
+# ソートアルゴリズム ("FileName", "FileNameNatural", "CreatedTime", "ModifiedTime")
 sort_algorithm = "FileName"
 ```
 
 ### ソートアルゴリズム
 
 - `FileName`: ファイル名でソート
+- `FileNameNatural`: ファイル名で自然順ソート（数字をゼロサプレスして比較）
 - `CreatedTime`: 作成日時でソート  
 - `ModifiedTime`: 更新日時でソート
 
@@ -89,7 +90,7 @@ sort_algorithm = "FileName"
 
 ### 開発環境
 
-- **言語**: Rust 2024 Edition
+- **言語**: Rust 2021 Edition
 - **ツールチェイン**: x86_64-pc-windows-gnu
 - **OS**: Windows 11
 
@@ -200,6 +201,15 @@ MIT License
 © 2025 kznagamori
 
 ## 更新履歴
+- ファイル名で自然順ソート追加
+
+### v0.2.0
+- 初回リリース
+- WebP, JPEG, PNG対応
+- 基本的な画像ビューア機能
+- 設定ファイル対応
+- Windows対応
+
 
 ### v0.1.0
 - 初回リリース

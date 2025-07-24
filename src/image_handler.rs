@@ -4,6 +4,7 @@ use log::{debug, info, error};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
+use std::cmp::Ordering;
 use crate::config::{Config, SortAlgorithm};
 
 /// サポートされている画像フォーマット
@@ -158,6 +159,10 @@ impl ImageHandler {
                 images.sort_by(|a, b| a.name.cmp(&b.name));
                 debug!("ファイル名でソートしました");
             }
+            SortAlgorithm::FileNameNatural => {
+                images.sort_by(|a, b| natural_sort_compare(&a.name, &b.name));
+                debug!("ファイル名で自然順ソートしました");
+            }
             SortAlgorithm::CreatedTime => {
                 images.sort_by(|a, b| a.created.cmp(&b.created));
                 debug!("作成日時でソートしました");
@@ -226,4 +231,79 @@ impl ImageHandler {
     pub fn len(&self) -> usize {
         self.images.len()
     }
+}
+
+/// 自然順ソート比較関数
+/// 
+/// 文字列内の数字部分を数値として比較し、ゼロサプレスした自然順ソートを行う
+/// 
+/// # Arguments
+/// * `a` - 比較する文字列A
+/// * `b` - 比較する文字列B
+/// 
+/// # Returns
+/// * `Ordering` - 比較結果
+/// 
+/// # Examples
+/// ```
+/// // 通常の文字列ソート: "file1.jpg", "file10.jpg", "file2.jpg"
+/// // 自然順ソート:       "file1.jpg", "file2.jpg", "file10.jpg"
+/// ```
+fn natural_sort_compare(a: &str, b: &str) -> Ordering {
+    let mut chars_a = a.chars().peekable();
+    let mut chars_b = b.chars().peekable();
+
+    loop {
+        match (chars_a.peek(), chars_b.peek()) {
+            (None, None) => return Ordering::Equal,
+            (None, Some(_)) => return Ordering::Less,
+            (Some(_), None) => return Ordering::Greater,
+            (Some(ca), Some(cb)) => {
+                if ca.is_ascii_digit() && cb.is_ascii_digit() {
+                    // 両方が数字の場合、数値として比較
+                    let num_a = extract_number(&mut chars_a);
+                    let num_b = extract_number(&mut chars_b);
+                    
+                    match num_a.cmp(&num_b) {
+                        Ordering::Equal => continue,
+                        other => return other,
+                    }
+                } else {
+                    // 通常の文字比較
+                    match ca.cmp(cb) {
+                        Ordering::Equal => {
+                            chars_a.next();
+                            chars_b.next();
+                            continue;
+                        }
+                        other => return other,
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// 文字列から数値部分を抽出する
+/// 
+/// # Arguments
+/// * `chars` - 文字イテレータ
+/// 
+/// # Returns
+/// * `u64` - 抽出された数値（ゼロサプレス済み）
+fn extract_number(chars: &mut std::iter::Peekable<std::str::Chars>) -> u64 {
+    let mut number_str = String::new();
+    
+    while let Some(&ch) = chars.peek() {
+        if ch.is_ascii_digit() {
+            number_str.push(ch);
+            chars.next();
+        } else {
+            break;
+        }
+    }
+    
+    // ゼロサプレスして数値に変換
+    // 空文字列の場合は0を返す
+    number_str.parse::<u64>().unwrap_or(0)
 }
