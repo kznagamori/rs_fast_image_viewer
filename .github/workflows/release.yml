@@ -166,26 +166,39 @@ jobs:
         path: |
           rs_fast_image_viewer-windows-x64.zip
           rs_fast_image_viewer-windows-x64.zip.sha256
-          target/x86_64-pc-windows-msvc/release/rs_fast_image_viewer.exe
+        
+    - name: Upload executable separately
+      uses: actions/upload-artifact@v4
+      with:
+        name: rs_fast_image_viewer-exe
+        path: target/x86_64-pc-windows-msvc/release/rs_fast_image_viewer.exe
 
   release:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [prepare, build]
     if: github.event_name == 'release'
+    permissions:
+      contents: write
     
     steps:
-    - name: Download artifacts
+    - name: Download ZIP artifacts
       uses: actions/download-artifact@v4
       with:
         name: rs_fast_image_viewer-windows-x64
+        path: artifacts
+
+    - name: Download executable artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: rs_fast_image_viewer-exe
         path: artifacts
 
     - name: Display structure
       run: find artifacts -type f -name "*" | sort
 
     - name: Upload Release Assets
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           artifacts/rs_fast_image_viewer-windows-x64.zip
@@ -241,5 +254,4 @@ jobs:
           **チェックサム:** SHA256ハッシュファイル（`.sha256`）でファイルの整合性を確認できます。
         draft: false
         prerelease: ${{ contains(needs.prepare.outputs.tag, 'alpha') || contains(needs.prepare.outputs.tag, 'beta') || contains(needs.prepare.outputs.tag, 'rc') }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
