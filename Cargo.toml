@@ -1,8 +1,8 @@
 [package]
 name = "rs_fast_image_viewer"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
-description = "High-speed image viewer with WebP support"
+description = "High-speed image viewer with WebP and PSD support"
 authors = ["kznagamori"]
 license = "MIT"
 
@@ -17,6 +17,7 @@ fern = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
 image = { version = "0.25", features = ["webp", "jpeg", "png"] }
+psd = "0.3"
 winit = "0.30"
 wgpu = { version = "26", features = ["wgsl"] }
 pollster = "0.3"

@@ -8,7 +8,7 @@ use std::cmp::Ordering;
 use crate::config::{Config, SortAlgorithm};
 
 /// サポートされている画像フォーマット
-const SUPPORTED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp"];
+const SUPPORTED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "psd"];
 
 /// 画像ファイル情報
 #[derive(Debug, Clone)]
@@ -211,9 +211,47 @@ impl ImageHandler {
     /// * `Result<DynamicImage>` - 読み込まれた画像
     pub fn load_image(&self, path: &Path) -> Result<DynamicImage> {
         debug!("画像ファイルを読み込み中: {:?}", path);
+        
+        // PSDファイルの場合は専用の処理を行う
+        if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+            if ext.to_lowercase() == "psd" {
+                return self.load_psd_image(path);
+            }
+        }
+        
         let img = image::open(path)?;
         debug!("画像ファイルの読み込み完了: {}x{}", img.width(), img.height());
         Ok(img)
+    }
+    
+    /// PSDファイルを読み込む
+    /// 
+    /// # Arguments
+    /// * `path` - PSDファイルのパス
+    /// 
+    /// # Returns
+    /// * `Result<DynamicImage>` - 読み込まれた画像
+    fn load_psd_image(&self, path: &Path) -> Result<DynamicImage> {
+        debug!("PSDファイルを読み込み中: {:?}", path);
+        
+        // ファイルを読み込む
+        let bytes = std::fs::read(path)?;
+        
+        // PSDファイルをパース
+        let psd = psd::Psd::from_bytes(&bytes)?;
+        
+        // 最終合成画像を取得（RGBA形式）
+        let rgba_data = psd.rgba();
+        let width = psd.width();
+        let height = psd.height();
+        
+        debug!("PSDファイルの読み込み完了: {}x{}", width, height);
+        
+        // RGBAバッファからDynamicImageを作成
+        let img_buffer = image::RgbaImage::from_raw(width, height, rgba_data)
+            .ok_or_else(|| anyhow::anyhow!("PSDからの画像バッファ作成に失敗"))?;
+        
+        Ok(DynamicImage::ImageRgba8(img_buffer))
     }
 
     /// 画像が空かどうかを確認する

@@ -520,17 +520,34 @@ impl ImageViewer {
     /// 現在の画像を読み込む
     fn load_current_image(&mut self) {
         if let Some(image_file) = self.image_handler.current_image() {
-            info!("画像を読み込み中: {:?}", image_file.path);
-            match self.image_handler.load_image(&image_file.path) {
+            let file_path = image_file.path.clone();
+            let file_name = image_file.name.clone();
+            info!("画像を読み込み中: {:?}", file_path);
+            match self.image_handler.load_image(&file_path) {
                 Ok(image) => {
                     if let Err(e) = self.load_texture(image) {
                         error!("テクスチャの読み込みに失敗: {:?}", e);
+                    } else {
+                        // ウィンドウタイトルを更新
+                        self.update_window_title(&file_name);
                     }
                 }
                 Err(e) => {
                     error!("画像ファイルの読み込みに失敗: {:?}", e);
                 }
             }
+        }
+    }
+
+    /// ウィンドウタイトルを更新する
+    /// 
+    /// # Arguments
+    /// * `filename` - 表示するファイル名
+    fn update_window_title(&self, filename: &str) {
+        if let Some(window) = &self.window {
+            let title = format!("{} - rs_fast_image_viewer", filename);
+            window.set_title(&title);
+            debug!("ウィンドウタイトルを更新: {}", title);
         }
     }
 
